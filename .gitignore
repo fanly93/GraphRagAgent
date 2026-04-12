@@ -1,0 +1,31 @@
+# 环境与密钥（切勿提交）
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# 本地 Claude 配置（含本机路径）
+.claude/settings.local.json
+
+# 工具与 IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 流水线输出（按需保留时可删此行）
+langextract_pipeline/output/

@@ -1,0 +1,176 @@
+{
+    "pdf_info": [
+        {
+            "preproc_blocks": [
+                {
+                    "type": "table",
+                    "bbox": [
+                        4,
+                        0,
+                        1415,
+                        773
+                    ],
+                    "blocks": [
+                        {
+                            "type": "table_body",
+                            "bbox": [
+                                4,
+                                0,
+                                1415,
+                                773
+                            ],
+                            "group_id": 0,
+                            "lines": [
+                                {
+                                    "bbox": [
+                                        4,
+                                        0,
+                                        1415,
+                                        773
+                                    ],
+                                    "spans": [
+                                        {
+                                            "bbox": [
+                                                4,
+                                                0,
+                                                1415,
+                                                773
+                                            ],
+                                            "score": 0.83,
+                                            "html": "<table><tr><td rowspan=1 colspan=1>模块类别</td><td rowspan=1 colspan=1>示例功能</td></tr><tr><td rowspan=1 colspan=1>模型接口封装</td><td rowspan=1 colspan=1>OpenAl、Claude、Cohere、Qwen等模型统一调用方式</td></tr><tr><td rowspan=1 colspan=1>输出结构化</td><td rowspan=1 colspan=1>自动从模型中解析JSON、Schema、函数签名、文档等</td></tr><tr><td rowspan=1 colspan=1>Memory管理</td><td rowspan=1 colspan=1>Buffer、Summary、Entity、Conversation Memory等</td></tr><tr><td rowspan=1 colspan=1>Tool接入</td><td rowspan=1 colspan=1>Web搜索、SQL数据库、Python执行器、API代理等</td></tr><tr><td rowspan=1 colspan=1>Agent架构</td><td rowspan=1 colspan=1>ReAct、Self-Ask、OpenAl FunctionAgent等调度机制</td></tr><tr><td rowspan=1 colspan=1>RAG集成</td><td rowspan=1 colspan=1>多种Retriever、VectorStore、文档拆分策略</td></tr><tr><td rowspan=1 colspan=1>Server/API发布</td><td rowspan=1 colspan=1>快速将链部署为Web服务或A2AAgent</td></tr><tr><td rowspan=1 colspan=1>Debug&amp; Callback</td><td rowspan=1 colspan=1>Token使用统计、LangSmith可视化追踪等</td></tr></table>",
+                                            "type": "table",
+                                            "image_path": "261f4c5ac704b06177e66dccdafb0e9d8174904586e9f0f8d416d76b3342afe3.jpg"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "index": 1,
+                            "virtual_lines": [
+                                {
+                                    "bbox": [
+                                        4,
+                                        0,
+                                        1415,
+                                        257.6666666666667
+                                    ],
+                                    "spans": [],
+                                    "index": 0
+                                },
+                                {
+                                    "bbox": [
+                                        4,
+                                        257.6666666666667,
+                                        1415,
+                                        515.3333333333334
+                                    ],
+                                    "spans": [],
+                                    "index": 1
+                                },
+                                {
+                                    "bbox": [
+                                        4,
+                                        515.3333333333334,
+                                        1415,
+                                        773.0
+                                    ],
+                                    "spans": [],
+                                    "index": 2
+                                }
+                            ]
+                        }
+                    ],
+                    "index": 1
+                }
+            ],
+            "page_idx": 0,
+            "page_size": [
+                1422,
+                776
+            ],
+            "discarded_blocks": [],
+            "para_blocks": [
+                {
+                    "type": "table",
+                    "bbox": [
+                        4,
+                        0,
+                        1415,
+                        773
+                    ],
+                    "blocks": [
+                        {
+                            "type": "table_body",
+                            "bbox": [
+                                4,
+                                0,
+                                1415,
+                                773
+                            ],
+                            "group_id": 0,
+                            "lines": [
+                                {
+                                    "bbox": [
+                                        4,
+                                        0,
+                                        1415,
+                                        773
+                                    ],
+                                    "spans": [
+                                        {
+                                            "bbox": [
+                                                4,
+                                                0,
+                                                1415,
+                                                773
+                                            ],
+                                            "score": 0.83,
+                                            "html": "<table><tr><td rowspan=1 colspan=1>模块类别</td><td rowspan=1 colspan=1>示例功能</td></tr><tr><td rowspan=1 colspan=1>模型接口封装</td><td rowspan=1 colspan=1>OpenAl、Claude、Cohere、Qwen等模型统一调用方式</td></tr><tr><td rowspan=1 colspan=1>输出结构化</td><td rowspan=1 colspan=1>自动从模型中解析JSON、Schema、函数签名、文档等</td></tr><tr><td rowspan=1 colspan=1>Memory管理</td><td rowspan=1 colspan=1>Buffer、Summary、Entity、Conversation Memory等</td></tr><tr><td rowspan=1 colspan=1>Tool接入</td><td rowspan=1 colspan=1>Web搜索、SQL数据库、Python执行器、API代理等</td></tr><tr><td rowspan=1 colspan=1>Agent架构</td><td rowspan=1 colspan=1>ReAct、Self-Ask、OpenAl FunctionAgent等调度机制</td></tr><tr><td rowspan=1 colspan=1>RAG集成</td><td rowspan=1 colspan=1>多种Retriever、VectorStore、文档拆分策略</td></tr><tr><td rowspan=1 colspan=1>Server/API发布</td><td rowspan=1 colspan=1>快速将链部署为Web服务或A2AAgent</td></tr><tr><td rowspan=1 colspan=1>Debug&amp; Callback</td><td rowspan=1 colspan=1>Token使用统计、LangSmith可视化追踪等</td></tr></table>",
+                                            "type": "table",
+                                            "image_path": "261f4c5ac704b06177e66dccdafb0e9d8174904586e9f0f8d416d76b3342afe3.jpg"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "index": 1,
+                            "virtual_lines": [
+                                {
+                                    "bbox": [
+                                        4,
+                                        0,
+                                        1415,
+                                        257.6666666666667
+                                    ],
+                                    "spans": [],
+                                    "index": 0
+                                },
+                                {
+                                    "bbox": [
+                                        4,
+                                        257.6666666666667,
+                                        1415,
+                                        515.3333333333334
+                                    ],
+                                    "spans": [],
+                                    "index": 1
+                                },
+                                {
+                                    "bbox": [
+                                        4,
+                                        515.3333333333334,
+                                        1415,
+                                        773.0
+                                    ],
+                                    "spans": [],
+                                    "index": 2
+                                }
+                            ]
+                        }
+                    ],
+                    "index": 1
+                }
+            ]
+        }
+    ],
+    "_backend": "pipeline",
+    "_version_name": "2.7.6"
+}

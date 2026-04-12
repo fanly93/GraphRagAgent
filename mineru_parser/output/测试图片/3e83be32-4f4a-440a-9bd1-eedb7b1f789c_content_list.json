@@ -1,0 +1,28 @@
+[
+    {
+        "type": "image",
+        "img_path": "images/251e9c71cef875779887dd7b99875a8cf293c877369872577052b9c690ba1d8a.jpg",
+        "image_caption": [],
+        "image_footnote": [],
+        "bbox": [
+            0,
+            0,
+            897,
+            1000
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/40429a67e857c3b06de6c0202a6e4bf49946f63ba38300253a84c63a7a7394ff.jpg",
+        "image_caption": [],
+        "image_footnote": [],
+        "bbox": [
+            879,
+            184,
+            999,
+            845
+        ],
+        "page_idx": 0
+    }
+]

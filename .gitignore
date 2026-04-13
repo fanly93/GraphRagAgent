@@ -29,6 +29,7 @@ build/
 
 # 流水线输出（按需保留时可删此行）
 langextract_pipeline/output/
+mineru_parser/output/
 
 # Web demo 上传暂存（用户文档，不纳入版本库）
 mineru_parser/input/web_uploads/

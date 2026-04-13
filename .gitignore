@@ -35,3 +35,11 @@ mineru_parser/output/
 mineru_parser/input/web_uploads/
 # RAG 向量索引产物（可重建）
 rag_pipeline/chroma_db/
+
+# FastAPI 后端（backend/）运行时产物与本地环境
+backend/.venv/
+backend/chroma_db/
+backend/data/
+backend/kg_output/
+backend/output/
+backend/uploads/

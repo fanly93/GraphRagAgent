@@ -47,7 +47,8 @@ def read_mineru_document(
         return None
 
     # 可选：从 content_list.json 追加表格文本（LangExtract 只处理纯文本）
-    if include_tables:
+    # 若 full.md 已含 Markdown 表格，跳过追加以避免重复
+    if include_tables and not _has_markdown_tables(text):
         content_list_files = list(output_dir.glob("*_content_list.json"))
         if content_list_files:
             table_texts = _extract_table_texts(content_list_files[0])
@@ -55,6 +56,9 @@ def read_mineru_document(
                 text += "\n\n" + "\n\n".join(table_texts)
 
     doc_id = output_dir.name
+    if len(text) < 200:
+        print(f"  [警告] {doc_id}：文本过短（{len(text)} 字符），KG 抽取内容可能极少")
+
     return lx.data.Document(
         text=text,
         document_id=doc_id,
@@ -62,11 +66,17 @@ def read_mineru_document(
     )
 
 
+def _has_markdown_tables(text: str) -> bool:
+    """检测文本中是否已含 Markdown 表格（以 | 开头的行）。"""
+    return any(line.strip().startswith("|") for line in text.splitlines())
+
+
 def _extract_table_texts(content_list_path: Path) -> list[str]:
     """从 content_list.json 中提取表格内容，转为可读文本。
 
-    MinerU content_list.json 中表格的 table_body 字段为 HTML，
-    此处仅做简单标记，保留 HTML 以供 LLM 理解。
+    - 表格按出现顺序编号（[表格 1], [表格 2]...）
+    - 若有 table_caption，拼接在 table_body 前
+    - MinerU table_body 为完整 HTML <table> 结构
     """
     try:
         with content_list_path.open(encoding="utf-8") as f:
@@ -75,11 +85,26 @@ def _extract_table_texts(content_list_path: Path) -> list[str]:
         return []
 
     table_texts = []
-    for i, block in enumerate(blocks, 1):
-        if block.get("type") == "table":
-            table_body = block.get("table_body", "")
-            if table_body:
-                table_texts.append(f"[表格 {i}]\n{table_body}")
+    table_idx = 0
+    for block in blocks:
+        if block.get("type") != "table":
+            continue
+        table_body = block.get("table_body", "")
+        if not table_body:
+            continue
+
+        table_idx += 1
+        caption_raw = block.get("table_caption", [])
+        # caption 可能是 list[str] 或 str
+        if isinstance(caption_raw, list):
+            caption = " ".join(caption_raw).strip()
+        else:
+            caption = str(caption_raw).strip()
+
+        if caption:
+            table_texts.append(f"[表格 {table_idx}：{caption}]\n{table_body}")
+        else:
+            table_texts.append(f"[表格 {table_idx}]\n{table_body}")
 
     return table_texts
 

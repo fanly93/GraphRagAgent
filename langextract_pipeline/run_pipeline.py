@@ -90,32 +90,32 @@ def _save_results(
 ) -> tuple[Path, Path]:
     """保存 JSONL + HTML 可视化文件，返回两个文件路径。
 
-    注意：lx.io.save_annotated_documents 保存的文件名不带扩展名，
-    lx.visualize 也接受不带扩展名的路径。
+    output_name 不含扩展名（如 kg_extraction_20260413_120000）。
+    实际保存为 output_name.jsonl，HTML 为 output_name.html。
     """
-    # save_annotated_documents 实际保存路径：output_dir/output_name（无扩展名）
-    saved_path = config.OUTPUT_DIR / output_name
+    jsonl_name = f"{output_name}.jsonl"
+    jsonl_path = config.OUTPUT_DIR / jsonl_name
     html_path = config.OUTPUT_DIR / f"{output_name}.html"
 
-    # 保存 JSONL
+    # 保存 JSONL（output_name 含 .jsonl 后缀，save_annotated_documents 直接用作文件名）
     lx.io.save_annotated_documents(
         docs,
-        output_name=output_name,
+        output_name=jsonl_name,
         output_dir=str(config.OUTPUT_DIR),
     )
 
-    # 生成 HTML 可视化（传入实际保存路径，不带后缀）
+    # 生成 HTML 可视化（传入 .jsonl 文件实际路径）
     try:
-        html_content = lx.visualize(str(saved_path))
+        html_content = lx.visualize(str(jsonl_path))
         html_str = html_content.data if hasattr(html_content, "data") else html_content
         html_path.write_text(html_str, encoding="utf-8")
-        print(f"\n  [已保存] JSONL → {saved_path}")
+        print(f"\n  [已保存] JSONL → {jsonl_path}")
         print(f"  [已保存] HTML  → {html_path}")
     except Exception as e:
-        print(f"\n  [已保存] JSONL → {saved_path}")
+        print(f"\n  [已保存] JSONL → {jsonl_path}")
         print(f"  [警告]   HTML 生成失败：{e}")
 
-    return saved_path, html_path
+    return jsonl_path, html_path
 
 
 # ─────────────────────────────────────────────

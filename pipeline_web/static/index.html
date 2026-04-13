@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MinerU + LangExtract 流水线可视化</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --ok: #3ecf8e;
+      --warn: #f0c14b;
+      --err: #ff6b6b;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+    header h1 { margin: 0 0 0.35rem; font-size: 1.25rem; font-weight: 600; }
+    header p { margin: 0; color: var(--muted); font-size: 0.875rem; }
+    main { max-width: 1280px; margin: 0 auto; padding: 1.25rem 1.5rem 2rem; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 2rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.06);
+    }
+    .dropzone input { display: none; }
+    .muted { color: var(--muted); font-size: 0.8125rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 0.75rem; }
+    label.chk { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.875rem; cursor: pointer; }
+    button.btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    button.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .status-pill {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .st-queued { background: #444; }
+    .st-mineru { background: #5c4d9d; }
+    .st-extracting { background: #2a6f97; }
+    .st-done { background: #1d6f42; }
+    .st-error { background: #8a2c2c; }
+    #logBox {
+      max-height: 220px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      background: #0b0f14;
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border);
+    }
+    #logBox div { margin-bottom: 0.25rem; color: #c5d0e0; }
+    #logBox .stage { color: var(--accent); }
+    .tabs { display: flex; gap: 0.25rem; margin-bottom: 0.75rem; }
+    .tabs button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .tabs button.active {
+      color: var(--text);
+      border-color: var(--accent);
+      background: rgba(61, 139, 253, 0.12);
+    }
+    .panel-hidden { display: none; }
+    #kgNetwork {
+      height: 520px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0b0f14;
+    }
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+    }
+    table.data th, table.data td {
+      border: 1px solid var(--border);
+      padding: 0.45rem 0.5rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    table.data th { background: #121922; color: var(--muted); font-weight: 600; }
+    .span-sample { font-family: var(--mono); color: var(--warn); word-break: break-all; }
+    .attrs { font-family: var(--mono); font-size: 0.72rem; color: #a8c4e8; white-space: pre-wrap; word-break: break-word; }
+    .legend { font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; }
+    code { font-family: var(--mono); font-size: 0.85em; background: #121922; padding: 0.1em 0.35em; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MinerU + LangExtract 流水线可视化</h1>
+    <p>
+      数据契约遵循 <code>docs/mineru-langextract-pipeline-v1.0.md</code>：AnnotatedDocument（<code>document_id</code>、<code>text</code>、<code>extractions[]</code>），
+      抽取项字段含 <code>extraction_class</code>、<code>extraction_text</code>、<code>char_interval</code>、<code>alignment_status</code>、<code>attributes</code>。
+    </p>
+  </header>
+  <main>
+    <section class="card">
+      <div class="dropzone" id="dropzone">
+        <strong>点击或拖放上传</strong>
+        <div class="muted" style="margin-top:0.5rem">
+          PDF / Word / PPT / Excel / HTML / 图片（MinerU 路由）及纯文本 <code>.txt</code>、<code>.md</code>（本地写入 full.md）
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.html,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.bmp" />
+      </div>
+      <div class="row">
+        <span id="statusWrap"><span class="status-pill st-queued" id="statusPill">待命</span></span>
+        <label class="chk"><input type="checkbox" id="onlyGrounded" checked /> 隐藏未定位（<code>char_interval</code> 为 null，规范 7.7）</label>
+        <label class="chk"><input type="checkbox" id="onlyExact" checked /> 仅保留 <code>match_exact</code>（规范 7.7 推荐）</label>
+        <button class="btn" type="button" id="btnDemo" title="需已有后端任务或自行上传">清空视图</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="margin:0 0 0.5rem;font-size:1rem">过程日志</h2>
+      <div id="logBox"></div>
+      <p class="legend">说明：LangExtract 在子进程中运行，进度以阶段日志展示；抽取完成后加载 JSONL 等价结构用于表格与图谱。</p>
+    </section>
+
+    <section class="card">
+      <div class="tabs">
+        <button type="button" class="tab active" data-tab="table">信息抽取表格</button>
+        <button type="button" class="tab" data-tab="graph">知识图谱</button>
+      </div>
+      <div id="tab-table">
+        <div style="overflow:auto;max-height:480px">
+          <table class="data" id="extTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>extraction_class</th>
+                <th>extraction_text</th>
+                <th>原文片段（UTF 码点切片）</th>
+                <th>alignment_status</th>
+                <th>char_interval</th>
+                <th>attributes</th>
+              </tr>
+            </thead>
+            <tbody id="extBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="tab-graph" class="panel-hidden">
+        <div id="kgNetwork"></div>
+        <p class="legend">
+          图谱规则：每个通过筛选的抽取为实体节点；将 <code>attributes</code> 中字符串值按 <code>[,，、]</code> 粗分后作为关联目标节点，边标签为属性键（与规范 6.3「关系通过 attributes 表达」一致）。节点过多时自动截断以防卡顿。
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+(function () {
+  const API_BASE = window.__PIPELINE_API_BASE__ || '';
+
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const logBox = document.getElementById('logBox');
+  const statusPill = document.getElementById('statusPill');
+  const extBody = document.getElementById('extBody');
+  const onlyGrounded = document.getElementById('onlyGrounded');
+  const onlyExact = document.getElementById('onlyExact');
+  const btnDemo = document.getElementById('btnDemo');
+  const kgContainer = document.getElementById('kgNetwork');
+
+  let pollTimer = null;
+  let network = null;
+
+  const STATUS_LABEL = {
+    queued: '排队',
+    mineru: 'MinerU 解析',
+    extracting: 'LangExtract 抽取',
+    done: '完成',
+    error: '错误'
+  };
+
+  function setStatus(st) {
+    statusPill.textContent = STATUS_LABEL[st] || st;
+    statusPill.className = 'status-pill st-' + (st === 'extracting' ? 'extracting' : st);
+  }
+
+  function appendLocalLog(msg) {
+    const d = document.createElement('div');
+    d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    logBox.appendChild(d);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function clearLogs() {
+    logBox.innerHTML = '';
+  }
+
+  function sliceByCodePoints(str, start, end) {
+    if (str == null) return '';
+    const arr = Array.from(str);
+    return arr.slice(start, end).join('');
+  }
+
+  function filterExtractions(doc) {
+    if (!doc || !Array.isArray(doc.extractions)) return [];
+    return doc.extractions.filter(function (e) {
+      if (onlyGrounded.checked && !e.char_interval) return false;
+      if (onlyExact.checked && e.alignment_status !== 'match_exact') return false;
+      return true;
+    });
+  }
+
+  function renderTable(doc) {
+    extBody.innerHTML = '';
+    const rows = filterExtractions(doc);
+    if (!doc) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="7" class="muted">尚无数据，请上传文件。</td>';
+      extBody.appendChild(tr);
+      return;
+    }
+    if (rows.length === 0) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="7" class="muted">当前筛选下无抽取项。可取消勾选以查看 fuzzy / 未定位条目。</td>';
+      extBody.appendChild(tr);
+      return;
+    }
+    const text = doc.text || '';
+    rows.forEach(function (e, i) {
+      const tr = document.createElement('tr');
+      let span = '';
+      if (e.char_interval && text) {
+        span = sliceByCodePoints(text, e.char_interval.start_pos, e.char_interval.end_pos);
+      }
+      const ci = e.char_interval
+        ? JSON.stringify(e.char_interval)
+        : 'null';
+      const attrs = e.attributes && typeof e.attributes === 'object'
+        ? JSON.stringify(e.attributes, null, 0)
+        : '';
+      tr.innerHTML =
+        '<td>' + (i + 1) + '</td>' +
+        '<td>' + escapeHtml(e.extraction_class || '') + '</td>' +
+        '<td>' + escapeHtml(e.extraction_text || '') + '</td>' +
+        '<td class="span-sample">' + escapeHtml(span) + '</td>' +
+        '<td>' + escapeHtml(String(e.alignment_status ?? '')) + '</td>' +
+        '<td><code>' + escapeHtml(ci) + '</code></td>' +
+        '<td class="attrs">' + escapeHtml(attrs) + '</td>';
+      extBody.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  const CLASS_COLORS = {
+    product: '#5b8ff9',
+    organization: '#61d9a8',
+    technology: '#f6bd42',
+    event: '#e8684a',
+    person: '#a78bfa',
+    location: '#78d3f8',
+    attribute_value: '#8892a0'
+  };
+
+  function buildGraphFromDoc(doc) {
+    const nodes = [];
+    const edges = [];
+    const nodeSet = new Set();
+    const extractions = filterExtractions(doc);
+    const MAX_NODES = 100;
+    const MAX_EDGES = 200;
+
+    function addNode(id, label, group) {
+      if (nodeSet.has(id) || nodes.length >= MAX_NODES) return id;
+      nodeSet.add(id);
+      nodes.push({
+        id: id,
+        label: label.length > 40 ? label.slice(0, 38) + '…' : label,
+        title: label,
+        group: group,
+        color: CLASS_COLORS[group] || CLASS_COLORS.attribute_value
+      });
+      return id;
+    }
+
+    extractions.forEach(function (e) {
+      const cls = e.extraction_class || 'unknown';
+      const mainLabel = e.extraction_text || '(空)';
+      const nid = cls + '::' + mainLabel;
+      addNode(nid, mainLabel, cls);
+      const attrs = e.attributes && typeof e.attributes === 'object' ? e.attributes : {};
+      Object.keys(attrs).forEach(function (key) {
+        const val = attrs[key];
+        if (typeof val !== 'string' || !val.trim()) return;
+        val.split(/[,，、]/).map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (part) {
+          if (edges.length >= MAX_EDGES) return;
+          if (part === mainLabel) return;
+          const tid = 'attr::' + part;
+          addNode(tid, part, 'attribute_value');
+          edges.push({
+            from: nid,
+            to: tid,
+            arrows: 'to',
+            label: key.length > 18 ? key.slice(0, 16) + '…' : key,
+            font: { align: 'middle', size: 10, color: '#b8c5d6' }
+          });
+        });
+      });
+    });
+
+    return { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+  }
+
+  function renderGraph(doc) {
+    const data = buildGraphFromDoc(doc);
+    const options = {
+      physics: {
+        enabled: true,
+        barnesHut: { gravitationalConstant: -12000, springLength: 140 }
+      },
+      nodes: {
+        shape: 'dot',
+        size: 18,
+        font: { color: '#e7ecf3', size: 13 }
+      },
+      edges: { smooth: { type: 'continuous' } },
+      interaction: { hover: true, tooltipDelay: 120 }
+    };
+    if (network) {
+      network.destroy();
+      network = null;
+    }
+    if (typeof vis === 'undefined' || !data.nodes.length) {
+      kgContainer.innerHTML = '<div class="muted" style="padding:1rem">无可视化节点（筛选过严或无数据）。</div>';
+      return;
+    }
+    kgContainer.innerHTML = '';
+    network = new vis.Network(kgContainer, data, options);
+  }
+
+  function syncViews(doc) {
+    renderTable(doc);
+    const graphPanel = document.getElementById('tab-graph');
+    if (!graphPanel.classList.contains('panel-hidden')) {
+      renderGraph(doc);
+    }
+  }
+
+  let currentDoc = null;
+
+  onlyGrounded.addEventListener('change', function () { syncViews(currentDoc); });
+  onlyExact.addEventListener('change', function () { syncViews(currentDoc); });
+
+  document.querySelectorAll('.tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      const name = btn.getAttribute('data-tab');
+      document.getElementById('tab-table').classList.toggle('panel-hidden', name !== 'table');
+      document.getElementById('tab-graph').classList.toggle('panel-hidden', name !== 'graph');
+      if (name === 'graph') renderGraph(currentDoc);
+    });
+  });
+
+  btnDemo.addEventListener('click', function () {
+    currentDoc = null;
+    clearLogs();
+    setStatus('queued');
+    syncViews(null);
+    appendLocalLog('视图已清空。');
+  });
+
+  function renderJobLogs(logs) {
+    logBox.innerHTML = '';
+    (logs || []).forEach(function (entry) {
+      const d = document.createElement('div');
+      d.innerHTML =
+        '<span class="muted">' + escapeHtml(entry.time || '') + '</span> ' +
+        '<span class="stage">[' + escapeHtml(entry.stage || '') + ']</span> ' +
+        escapeHtml(entry.message || '');
+      logBox.appendChild(d);
+    });
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function stopPoll() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function startPoll(jobId) {
+    stopPoll();
+    pollTimer = setInterval(function () {
+      fetch(API_BASE + '/api/v1/jobs/' + encodeURIComponent(jobId))
+        .then(function (r) {
+          if (!r.ok) throw new Error('poll ' + r.status);
+          return r.json();
+        })
+        .then(function (job) {
+          setStatus(job.status);
+          renderJobLogs(job.logs);
+          if (job.status === 'done' && job.document) {
+            currentDoc = job.document;
+            syncViews(currentDoc);
+            stopPoll();
+            appendLocalLog('任务完成，document_id = ' + job.document.document_id);
+          }
+          if (job.status === 'error') {
+            stopPoll();
+            appendLocalLog('错误：' + (job.error || 'unknown'));
+          }
+        })
+        .catch(function (e) {
+          appendLocalLog('轮询失败：' + e.message);
+          stopPoll();
+        });
+    }, 1500);
+  }
+
+  function uploadFile(file) {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    appendLocalLog('正在上传：' + file.name);
+    setStatus('queued');
+    clearLogs();
+    fetch(API_BASE + '/api/v1/process', { method: 'POST', body: fd })
+      .then(function (r) {
+        if (!r.ok) return r.text().then(function (t) { throw new Error(t || r.status); });
+        return r.json();
+      })
+      .then(function (res) {
+        appendLocalLog('任务已创建 job_id=' + res.job_id);
+        setStatus('mineru');
+        startPoll(res.job_id);
+      })
+      .catch(function (e) {
+        appendLocalLog('上传失败：' + e.message);
+        setStatus('error');
+      });
+  }
+
+  dropzone.addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) uploadFile(fileInput.files[0]);
+    fileInput.value = '';
+  });
+  dropzone.addEventListener('dragover', function (ev) {
+    ev.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+  dropzone.addEventListener('dragleave', function () {
+    dropzone.classList.remove('dragover');
+  });
+  dropzone.addEventListener('drop', function (ev) {
+    ev.preventDefault();
+    dropzone.classList.remove('dragover');
+    const f = ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if (f) uploadFile(f);
+  });
+
+  setStatus('queued');
+  syncViews(null);
+  appendLocalLog('API 根路径：' + (API_BASE || '(同域)') + ' — 请通过 uvicorn 打开本页以保证上传可用。');
+})();
+  </script>
+</body>
+</html>

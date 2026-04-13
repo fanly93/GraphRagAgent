@@ -32,3 +32,5 @@ langextract_pipeline/output/
 
 # Web demo 上传暂存（用户文档，不纳入版本库）
 mineru_parser/input/web_uploads/
+# RAG 向量索引产物（可重建）
+rag_pipeline/chroma_db/

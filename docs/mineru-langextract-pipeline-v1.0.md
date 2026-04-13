@@ -500,11 +500,21 @@ with open("output/kg_extraction_20260412_223231.jsonl") as f:
 
 | 文档 | MinerU 解析 | LangExtract 抽取 | 抽取结果文件 |
 |------|------------|----------------|------------|
-| 0.LangChain技术生态介绍 | ✅ 完成 | ✅ 完成（96条） | `kg_extraction_20260412_223231.jsonl` |
-| 数组 | ✅ 完成 | ⏳ 待运行 | — |
-| 销售数据统计 | ✅ 完成 | ⏳ 待运行 | — |
-| 图1 | ✅ 完成 | ⏳ 待运行 | — |
+| 0.LangChain技术生态介绍 | ✅ 完成 | ✅ 完成（96条，61 exact） | `kg_extraction_20260412_223231.jsonl` |
+| （第2次运行，多文档） | — | ✅ 完成（3文档合并） | `kg_extraction_20260413_110626.jsonl` |
+| （第3次运行，多文档） | — | ✅ 完成（3文档合并） | `kg_extraction_20260413_111429.jsonl` |
+| 数组 | ✅ 完成 | ✅ 已包含在多文档运行中 | 见上 |
+| 销售数据统计 | ✅ 完成 | ✅ 已包含在多文档运行中 | 见上 |
+| 图1 | ✅ 完成 | ⏳ 待运行（单独） | — |
 | 测试图片 | ✅ 完成 | ⚠️ 建议跳过 | 纯图片，文本仅 162 字符 |
+
+**Agentic RAG 实际加载状态（2026-04-13）：**
+
+```
+[KG] 已加载 3 个文档，130 个实体
+```
+
+KGRetriever 从 `output/` 目录的全部 JSONL 文件中加载，当前读取 3 个 JSONL 文件，汇总 `match_exact` 实体共 **130 个**。
 
 ---
 
@@ -547,3 +557,72 @@ with open("output/kg_extraction_20260412_223231.jsonl") as f:
 | `Prompt alignment FAILED` 警告 | few-shot 示例中某词多次出现，顺序检查误报 | 不影响抽取，可忽略 |
 | qwen/deepseek 被路由到 Ollama | langextract 内置 `^qwen`/`^deepseek` 模式匹配到 OllamaProvider | ✅ 已修复：直接传 model 实例绕过路由 |
 | 纯图片文档抽取内容极少 | LangExtract 不支持图像理解，图片内容无法提取 | 建议通过 doc_filter 跳过 |
+
+---
+
+## 10. 下游对接：Agentic RAG（已实现，2026-04-13）
+
+> 完整规范见：`docs/agentic-rag-pipeline-spec-v1.0.md`
+
+### 10.1 JSONL 产物作为 KG 检索数据源
+
+Agentic RAG 的 `KGRetriever` 直接读取本 pipeline 输出的 JSONL 文件：
+
+```python
+# agentic_rag/retrievers/kg_retriever.py
+class KGRetriever:
+    def __init__(self, jsonl_dir, context_window=200, min_alignment="match_exact"):
+        # 扫描 jsonl_dir 下所有 .jsonl 文件
+        for jsonl_file in Path(jsonl_dir).glob("*.jsonl"):
+            with open(jsonl_file) as f:
+                for line in f:
+                    record = json.loads(line)
+                    for ext in record.get("extractions", []):
+                        # 只使用 match_exact 状态的实体
+                        if ext["alignment_status"] == min_alignment:
+                            # 加入 BM25 索引（entity_text + attribute values）
+                            # 保存 context_snippet（原文±200字）
+```
+
+**数据流**：
+```
+langextract_pipeline/output/kg_extraction_*.jsonl
+        │
+        ▼ KGRetriever.__init__()
+BM25 索引（130 个 match_exact 实体）
+        │
+        ▼ KGRetriever.retrieve(query, top_k=5)
+list[dict]（实体卡片，含 entity_text / attributes / context_snippet）
+        │
+        ▼ kg_retriever.format_for_prompt(results)
+实体卡片文本（注入 LLM Prompt）
+```
+
+### 10.2 KGRetriever 消费的 JSONL 字段
+
+| JSONL 字段 | KGRetriever 用途 |
+|-----------|----------------|
+| `extractions[].extraction_text` | 实体名称（BM25 索引 + 返回） |
+| `extractions[].extraction_class` | 实体类型（返回供展示） |
+| `extractions[].attributes` | 属性字典（BM25 索引 + 返回） |
+| `extractions[].char_interval.start_pos` | 原文偏移（取 context_snippet） |
+| `extractions[].char_interval.end_pos` | 原文偏移（取 context_snippet） |
+| `extractions[].alignment_status` | 过滤条件（仅 match_exact） |
+| `document_id` | 来源文档 ID（返回供引用） |
+| `text` | 原始全文（context_snippet 取 ±200 字） |
+
+### 10.3 实测接入效果（3 问题验证）
+
+| 问题类型 | 路由 | KG 命中实体数 | 关键命中实体 |
+|---------|------|-------------|------------|
+| LangChain 核心组件 + LlamaIndex 对比 | hybrid_query | 5 | LangChain, LlamaIndex, LCEL, LangSmith, LangGraph |
+| LangSmith 是什么 | entity_query | 5 | LangSmith, LangSmith追踪功能, LangSmith评测 |
+| LangGraph 应用场景 | hybrid_query | 5 | LangGraph, LangGraph Platform, LangChain, LCEL |
+
+KG 实体检索精准命中细粒度概念实体（如"LangSmith 追踪功能"、"LangSmith评测"），为 LLM 生成提供了结构化的属性信息，显著提升了答案质量。
+
+### 10.4 JSONL 文件管理建议
+
+- **不要删除旧 JSONL**：KGRetriever 会加载目录下所有 JSONL，多次运行会**累积**实体
+- **去重说明**：目前 KGRetriever 不对实体去重，相同实体可能在 BM25 中出现多次（BM25 TF 加权会自然抑制重复）
+- **增量更新**：新增文档后运行 `run_pipeline.py "新文档名"`，产生新 JSONL，KGRetriever 下次加载自动包含

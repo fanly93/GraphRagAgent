@@ -4,7 +4,7 @@
 
 ```
 GraphRagAgent/
-├── frontend/     # 前端：所有 React/TS 代码、依赖（node_modules）、构建产物、前端配置
+├── frontend/     # 前端：Vite + React 源码与构建配置；依赖锁定见 package-lock.json（node_modules 不提交）
 ├── backend/      # 后端：所有 FastAPI 代码、.venv 虚拟环境、SQLite 数据库、上传文件
 ├── docs/         # 规范文档
 └── CLAUDE.md
@@ -42,3 +42,18 @@ cd backend
 source .venv/bin/activate
 uvicorn main:app --reload --port 8000
 ```
+
+---
+
+## 前端（Vite + React）
+
+依赖与版本锁定以 **`frontend/package-lock.json`** 为准，CI/新环境建议：
+
+```bash
+cd frontend
+npm ci        # 严格按 lockfile 安装（推荐）
+npm run dev   # 开发：默认 http://localhost:5173/
+npm run build # 产物：frontend/dist/
+```
+
+详见 `frontend/CLAUDE.md`。

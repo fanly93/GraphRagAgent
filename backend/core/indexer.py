@@ -23,6 +23,7 @@ def build_index(
     doc_id: Optional[str] = None,
 ) -> tuple[int, "Chroma"]:
     """将 documents 写入 Chroma，缓存 BM25 语料。返回 (chunk_count, vectorstore)。"""
+    import chromadb
     from langchain_chroma import Chroma
 
     persist_dir.mkdir(parents=True, exist_ok=True)
@@ -30,7 +31,7 @@ def build_index(
 
     bm25_cache_path = persist_dir / BM25_CACHE_FILENAME
 
-    # 若有 doc_id 指定，先删除旧的 collection 条目（增量更新）
+    # 若有 doc_id 指定，先从 BM25 缓存中去除旧条目（增量更新）
     existing_docs: list[Document] = []
     if bm25_cache_path.exists():
         with open(bm25_cache_path, "rb") as f:
@@ -42,11 +43,13 @@ def build_index(
 
     print(f"  [Indexer] 向量化 {len(documents)} 个新 chunks (总 {len(all_docs)}) → Chroma")
 
-    # 重建 Chroma（简单策略：全量重写）
-    import shutil
-    if persist_dir.exists():
-        shutil.rmtree(persist_dir)
-    persist_dir.mkdir(parents=True, exist_ok=True)
+    # 使用 ChromaDB API 删除并重建 collection（避免 shutil.rmtree 导致
+    # Rust backend 进程级 SQLite 连接池持有旧文件句柄而触发 SQLITE_READONLY 错误）
+    client = chromadb.PersistentClient(path=str(persist_dir))
+    try:
+        client.delete_collection(COLLECTION_NAME)
+    except Exception:
+        pass  # collection 不存在时忽略
 
     vectorstore = Chroma.from_documents(
         documents=all_docs,
@@ -55,7 +58,6 @@ def build_index(
         persist_directory=str(persist_dir),
     )
 
-    bm25_cache_path = persist_dir / BM25_CACHE_FILENAME
     with open(bm25_cache_path, "wb") as f:
         pickle.dump(all_docs, f)
 

@@ -24,18 +24,21 @@ GraphRagAgent/
 
 ---
 
-## 后端虚拟环境
+## 后端启动（FastAPI + uvicorn）
 
-后端必须使用独立的 Python 虚拟环境，不得使用全局环境：
+后端必须使用独立的 Python 虚拟环境，不得使用全局环境。
+
+**首次初始化**：
 
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env             # 然后填写真实密钥
 ```
 
-启动服务：
+**启动服务**：
 
 ```bash
 cd backend
@@ -43,17 +46,50 @@ source .venv/bin/activate
 uvicorn main:app --reload --port 8000
 ```
 
+服务地址：`http://localhost:8000` | API 文档：`http://localhost:8000/docs`
+
+**停止服务**：
+
+```bash
+# 前台运行时直接 Ctrl+C
+# 后台运行时：
+pkill -f "uvicorn main:app"
+```
+
 ---
 
-## 前端（Vite + React）
+## 前端启动（Vite + React）
 
-依赖与版本锁定以 **`frontend/package-lock.json`** 为准，CI/新环境建议：
+> 前端通过 Vite 代理将 `/api` 请求转发到后端（`http://localhost:8000`），
+> 因此**使用前端前必须先启动后端服务**。
+
+**首次初始化**：
 
 ```bash
 cd frontend
-npm ci        # 严格按 lockfile 安装（推荐）
-npm run dev   # 开发：默认 http://localhost:5173/
-npm run build # 产物：frontend/dist/
+npm install   # 首次安装或依赖变更后执行
+```
+
+**启动开发服务**：
+
+```bash
+cd frontend
+npm run dev   # 开发：http://localhost:5173/
+```
+
+**构建产物**：
+
+```bash
+cd frontend
+npm run build   # 产物输出到 frontend/dist/
+```
+
+**停止服务**：
+
+```bash
+# 前台运行时直接 Ctrl+C
+# 后台运行时：
+pkill -f "vite"
 ```
 
 详见 `frontend/CLAUDE.md`。

@@ -1,12 +1,28 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useDocumentStore } from '../store';
-import { 
-  Database, Filter, Search, FileText, AlignLeft, 
+import {
+  Database, Filter, Search, FileText, AlignLeft,
   Table as TableIcon, Image as ImageIcon, Hash, Tag,
   Heading, Braces, Layers, ChevronRight, Sparkles, Settings2, Loader2,
-  SlidersHorizontal
+  SlidersHorizontal, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '../components/ui';
+
+/** ⚠️ 后端未开发提示横幅 */
+function UnimplementedBanner() {
+  return (
+    <div className="flex items-center gap-3 mx-6 mt-4 px-4 py-3 bg-yellow-400/10 border border-yellow-400/30 rounded-xl text-yellow-400 text-sm">
+      <AlertTriangle className="w-5 h-5 shrink-0" />
+      <div>
+        <span className="font-semibold">后端接口未开发</span>
+        <span className="text-yellow-300/80 ml-2">
+          向量 Chunk 可视化所需的数据接口（/api/v1/chunks）在当前版本中尚未实现，
+          页面展示的 Chunk 数据为 Mock 数据，不反映真实索引内容。
+        </span>
+      </div>
+    </div>
+  );
+}
 
 type ChunkType = 'Title' | 'Text' | 'Table' | 'Image' | 'Formula';
 
@@ -281,7 +297,9 @@ export default function VectorVisualizerPage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-full w-full bg-[#0F1117] overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-[#0F1117] overflow-hidden">
+      <UnimplementedBanner />
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
       {/* Left Sidebar Control Panel */}
       <div className="w-full md:w-[320px] flex-none border-b md:border-b-0 md:border-r border-[#2D3148] bg-[#1A1D27] flex flex-col z-10">
         
@@ -554,6 +572,7 @@ export default function VectorVisualizerPage() {
             )
           )}
         </div>
+      </div>
       </div>
     </div>
   );

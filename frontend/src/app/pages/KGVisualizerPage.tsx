@@ -1,11 +1,27 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useDocumentStore } from '../store';
-import { 
+import {
   Network, ZoomIn, ZoomOut, Maximize, Search, Hexagon, Database, Link as LinkIcon,
-  Settings2, Loader2, Sparkles, X, Layers
+  Settings2, Loader2, Sparkles, X, Layers, AlertTriangle,
 } from 'lucide-react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { cn } from '../components/ui';
+
+/** ⚠️ 后端未开发提示横幅 */
+function UnimplementedBanner() {
+  return (
+    <div className="flex items-center gap-3 mx-6 mt-4 px-4 py-3 bg-yellow-400/10 border border-yellow-400/30 rounded-xl text-yellow-400 text-sm">
+      <AlertTriangle className="w-5 h-5 shrink-0" />
+      <div>
+        <span className="font-semibold">后端接口未开发</span>
+        <span className="text-yellow-300/80 ml-2">
+          KG 图谱可视化所需的实体图数据接口（/api/v1/kg/graph）在当前版本中尚未实现，
+          页面展示的图谱数据为 Mock 数据，不反映真实知识库内容。
+        </span>
+      </div>
+    </div>
+  );
+}
 
 const generateMockGraphData = (docCount: number) => {
   if (docCount === 0) return { nodes: [], links: [] };
@@ -215,8 +231,10 @@ export default function KGVisualizerPage() {
   const currentGraphData = viewMode === 'browse' ? browseFilteredData : searchResultGraph;
 
   return (
-    <div className="flex flex-col md:flex-row h-full w-full bg-[#0F1117] overflow-hidden">
-      
+    <div className="flex flex-col h-full w-full bg-[#0F1117] overflow-hidden">
+      <UnimplementedBanner />
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+
       {/* Left Sidebar Control Panel */}
       <div className="w-full md:w-[320px] flex-none border-b md:border-b-0 md:border-r border-[#2D3148] bg-[#1A1D27] flex flex-col z-10 shadow-xl">
         
@@ -594,6 +612,7 @@ export default function KGVisualizerPage() {
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
